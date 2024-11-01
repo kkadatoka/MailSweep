@@ -90,7 +90,7 @@ def main():
 
                     with col2:
                         if st.button(
-                            f"Delete {row["Count"]} email(s) from this sender",
+                            "Delete all email(s) from this sender",
                             key=f"delete_{index}",
                         ):
                             deleted_emails_count = analyzer.delete_emails_from_sender(
