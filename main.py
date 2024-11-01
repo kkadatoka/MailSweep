@@ -85,7 +85,7 @@ def main():
                     col1, col2 = st.columns([3, 1])
 
                     with col1:
-                        st.subheader(row["Sender Name"])
+                        st.subheader(row["Sender Name"], anchor=False)
                         st.caption(row["Email"])
 
                     with col2:
