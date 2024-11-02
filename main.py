@@ -97,30 +97,34 @@ def sidebar_component():
     st.sidebar.header("Authentication")
 
     with st.sidebar:
-        st.session_state.email_address = st.text_input(
-            "Gmail Address", value=st.session_state.email_address, type="default"
-        )
-        st.session_state.app_password = st.text_input(
-            "Gmail App Password", value=st.session_state.app_password, type="password"
-        )
-        st.session_state.max_emails = st.number_input(
-            "Maximum emails to analyze",
-            min_value=10,
-            max_value=1000,
-            value=st.session_state.max_emails,
-            step=10,
-        )
+        with st.form("authentication_form"):
+            st.session_state.email_address = st.text_input(
+                "Gmail Address", value=st.session_state.email_address, type="default"
+            )
+            st.session_state.app_password = st.text_input(
+                "Gmail App Password",
+                value=st.session_state.app_password,
+                type="password",
+            )
+            st.session_state.max_emails = st.number_input(
+                "Maximum emails to analyze",
+                min_value=10,
+                max_value=1000,
+                value=st.session_state.max_emails,
+                step=10,
+            )
 
-        if st.button("Connect"):
-            if st.session_state.email_address and st.session_state.app_password:
-                analyzer = GmailAnalyzer(
-                    st.session_state.email_address, st.session_state.app_password
-                )
-                test_conn = analyzer.connect()
-                if test_conn:
-                    test_conn.logout()
-                    st.success("Successfully connected to Gmail!")
-                    st.rerun()
+            if st.form_submit_button("Connect"):
+                if st.session_state.email_address and st.session_state.app_password:
+                    analyzer = GmailAnalyzer(
+                        st.session_state.email_address, st.session_state.app_password
+                    )
+                    test_conn = analyzer.connect()
+                    if test_conn:
+                        test_conn.logout()
+                        st.success("Successfully connected to Gmail!")
+                        st.session_state.email_data = None
+                        st.rerun()
 
         # Add a button to star the repository
         st.sidebar.markdown(
