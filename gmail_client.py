@@ -57,7 +57,7 @@ class GmailAnalyzer:
         sender_data = {}
         total_messages = len(message_ids)
 
-        batch_size = 100
+        batch_size = 500
         processed_messages = 0
         for batch_ids in self.chunk(message_ids, batch_size):
             if progress_callback:
