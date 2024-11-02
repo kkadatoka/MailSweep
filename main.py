@@ -1,30 +1,70 @@
 import streamlit as st
-
 from gmail_client import GmailAnalyzer
 
 
-def main():
-    st.set_page_config(page_title="CleanMail", layout="wide")
+def analyze_emails_component(analyzer):
+    if st.button("Analyze Emails"):
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
-    # Title row with refresh button
-    title_col, button_col = st.columns([6, 1])
-    with title_col:
-        st.title("CleanMail")
-    with button_col:
-        if st.button("🔄 Refresh", use_container_width=True):
-            st.session_state.email_data = None
-            st.rerun()
+        def update_progress(current, total):
+            progress = current / total
+            progress_bar.progress(progress)
+            status_text.text(f"Processing email {current}/{total}")
 
-    # Sidebar for authentication
+        st.session_state.email_data = analyzer.get_sender_statistics(
+            st.session_state.max_emails, progress_callback=update_progress
+        )
+
+        progress_bar.empty()
+        status_text.empty()
+        st.rerun()
+
+
+@st.fragment
+def sender_list_for_cleanup_component():
+    df = st.session_state.email_data
+
+    # Group by sender and create cards
+    for index, row in df.iterrows():
+        with st.container():
+            col1, col2 = st.columns([3, 1])
+
+            with col1:
+                st.subheader(row["Sender Name"], anchor=False)
+                st.caption(row["Email"])
+
+            with col2:
+                is_queued = row["Email"] in st.session_state.senders_to_be_cleaned
+                if st.checkbox(
+                    "Queue for deletion",
+                    value=is_queued,
+                    key=f"delete_{index}",
+                ):
+                    st.session_state.senders_to_be_cleaned.add(row["Email"])
+                else:
+                    st.session_state.senders_to_be_cleaned.discard(row["Email"])
+                if row["Unsubscribe Link"]:
+                    st.markdown(f"[Unsubscribe]({row['Unsubscribe Link']})")
+
+            st.divider()
+
+
+def email_cleanup_component():
+    analyzer = GmailAnalyzer(
+        st.session_state.email_address, st.session_state.app_password
+    )
+    # Show "Analyze Emails" button only if sender_stats is not populated
+    if st.session_state.email_data is None:
+        analyze_emails_component(analyzer)
+
+    # Always show the grouped view if email_data is present
+    if st.session_state.email_data is not None:
+        sender_list_for_cleanup_component()
+
+
+def sidebar_component():
     st.sidebar.header("Authentication")
-
-    # Use session state to store email credentials and sender stats
-    if "email_address" not in st.session_state:
-        st.session_state.email_address = None
-    if "app_password" not in st.session_state:
-        st.session_state.app_password = None
-    if "email_data" not in st.session_state:
-        st.session_state.email_data = None
 
     with st.sidebar:
         st.session_state.email_address = st.text_input(
@@ -33,11 +73,11 @@ def main():
         st.session_state.app_password = st.text_input(
             "Gmail App Password", value=st.session_state.app_password, type="password"
         )
-        max_emails = st.number_input(
+        st.session_state.max_emails = st.number_input(
             "Maximum emails to analyze",
             min_value=10,
             max_value=1000,
-            value=1000,
+            value=st.session_state.max_emails,
             step=10,
         )
 
@@ -52,63 +92,59 @@ def main():
                     st.success("Successfully connected to Gmail!")
                     st.rerun()
 
-    if st.session_state.email_address and st.session_state.app_password:
-        analyzer = GmailAnalyzer(
-            st.session_state.email_address, st.session_state.app_password
+        # Add a button to star the repository
+        st.sidebar.markdown(
+            """
+            ---
+            ⭐️ [Star this project on GitHub](https://github.com/BharatKalluri/cleanmail)
+            
+            🔗 [bharatkalluri.com](https://bharatkalluri.com)
+            """
         )
-        # Show "Analyze Emails" button only if sender_stats is not populated
-        if st.session_state.email_data is None:
-            if st.button("Analyze Emails"):
-                progress_bar = st.progress(0)
-                status_text = st.empty()
 
-                def update_progress(current, total):
-                    progress = current / total
-                    progress_bar.progress(progress)
-                    status_text.text(f"Processing email {current}/{total}")
 
-                st.session_state.email_data = analyzer.get_sender_statistics(
-                    max_emails, progress_callback=update_progress
+def main():
+    st.set_page_config(page_title="CleanMail", layout="wide")
+
+    # Use session state to store email credentials and sender stats
+    if "email_address" not in st.session_state:
+        st.session_state.email_address = None
+    if "app_password" not in st.session_state:
+        st.session_state.app_password = None
+    if "max_emails" not in st.session_state:
+        st.session_state.max_emails = 1000
+    if "email_data" not in st.session_state:
+        st.session_state.email_data = None
+    if "senders_to_be_cleaned" not in st.session_state:
+        st.session_state.senders_to_be_cleaned = set()
+
+    # Title row with clean and refresh buttons
+    title_col, clean_col, refresh_col = st.columns([6, 1, 1])
+    with title_col:
+        st.title("CleanMail")
+    with clean_col:
+        if st.button("🧹 Clean", use_container_width=True):
+            if st.session_state.senders_to_be_cleaned:
+                analyzer = GmailAnalyzer(
+                    st.session_state.email_address, st.session_state.app_password
                 )
-
-                progress_bar.empty()
-                status_text.empty()
+                for sender in st.session_state.senders_to_be_cleaned:
+                    deleted_count = analyzer.delete_emails_from_sender(sender)
+                    st.toast(f"Deleted {deleted_count} emails from {sender}")
+                st.session_state.senders_to_be_cleaned.clear()
+                st.session_state.email_data = None
                 st.rerun()
 
-        # Always show the grouped view if email_data is present
-        if st.session_state.email_data is not None:
-            df = st.session_state.email_data
+    with refresh_col:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.session_state.email_data = None
+            st.rerun()
 
-            # Group by sender and create cards
-            for index, row in df.iterrows():
-                with st.container():
-                    col1, col2 = st.columns([3, 1])
+    # Sidebar for authentication
+    sidebar_component()
 
-                    with col1:
-                        st.subheader(row["Sender Name"], anchor=False)
-                        st.caption(row["Email"])
-
-                    with col2:
-                        if st.button(
-                            "Delete all email(s) from this sender",
-                            key=f"delete_{index}",
-                        ):
-                            deleted_emails_count = analyzer.delete_emails_from_sender(
-                                row["Email"]
-                            )
-                            st.toast(
-                                f"Deleted {deleted_emails_count} emails from {row['Email']}"
-                            )
-                            # Remove the row from the DataFrame
-                            st.session_state.email_data = df.drop(index).reset_index(
-                                drop=True
-                            )
-                            st.rerun()
-                        if row["Unsubscribe Link"]:
-                            st.markdown(f"[Unsubscribe]({row['Unsubscribe Link']})")
-
-                    st.divider()
-
+    if st.session_state.email_address and st.session_state.app_password:
+        email_cleanup_component()
     else:
         st.info("Please authenticate using your Gmail credentials in the sidebar.")
         st.markdown(
@@ -123,16 +159,6 @@ def main():
         [Learn how to create an App Password](https://support.google.com/accounts/answer/185833)
         """
         )
-
-    # Add a button to star the repository
-    st.sidebar.markdown(
-        """
-        ---
-        ⭐️ [Star this project on GitHub](https://github.com/BharatKalluri/cleanmail)
-        
-        🔗 [bharatkalluri.com](https://bharatkalluri.com)
-        """
-    )
 
 
 if __name__ == "__main__":
