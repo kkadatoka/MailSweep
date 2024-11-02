@@ -28,7 +28,7 @@ def sender_list_for_cleanup_component():
     # Group by sender and create cards
     for index, row in df.iterrows():
         with st.container():
-            col1, col2 = st.columns([3, 1])
+            col1, col2 = st.columns([4, 1], gap="large")
 
             with col1:
                 st.subheader(row["Sender Name"], anchor=False)
@@ -118,30 +118,38 @@ def main():
     if "senders_to_be_cleaned" not in st.session_state:
         st.session_state.senders_to_be_cleaned = set()
 
+    # Sidebar for authentication
+    sidebar_component()
+
     # Title row with clean and refresh buttons
-    title_col, clean_col, refresh_col = st.columns([6, 1, 1])
+    title_col, clean_col, reset_col = st.columns([6, 1, 1])
     with title_col:
         st.title("CleanMail")
     with clean_col:
         if st.button("🧹 Clean", use_container_width=True):
-            if st.session_state.senders_to_be_cleaned:
+            if not st.session_state.senders_to_be_cleaned:
+                st.toast("No senders selected for cleanup!")
+            else:
+                st.toast(
+                    f"{len(st.session_state.senders_to_be_cleaned)} senders' emails are queued to be cleaned. Starting now!"
+                )
+                st.toast(
+                    "This may take a while depending on the number of emails. Please be patient!"
+                )
                 analyzer = GmailAnalyzer(
                     st.session_state.email_address, st.session_state.app_password
                 )
                 for sender in st.session_state.senders_to_be_cleaned:
                     deleted_count = analyzer.delete_emails_from_sender(sender)
-                    st.toast(f"Deleted {deleted_count} emails from {sender}")
+                    st.toast(f"Moved {deleted_count} emails from {sender} to the bin!")
                 st.session_state.senders_to_be_cleaned.clear()
                 st.session_state.email_data = None
                 st.rerun()
-
-    with refresh_col:
-        if st.button("🔄 Refresh", use_container_width=True):
+    with reset_col:
+        if st.button("🔄 Reset", use_container_width=True):
             st.session_state.email_data = None
+            st.session_state.senders_to_be_cleaned.clear()
             st.rerun()
-
-    # Sidebar for authentication
-    sidebar_component()
 
     if st.session_state.email_address and st.session_state.app_password:
         email_cleanup_component()
