@@ -1,3 +1,5 @@
+import math
+
 import streamlit as st
 from gmail_client import GmailAnalyzer
 
@@ -10,10 +12,23 @@ def analyze_emails_component(analyzer):
         def update_progress(current, total):
             progress = current / total
             progress_bar.progress(progress)
-            status_text.text(f"Processing email {current}/{total}")
+            warn_for_large_inboxes = f"""
+                    
+            Whoa, that's a pretty large inbox! This may take a while...
+            We are estimating the analysis to take about {math.floor((total/50)/60)} minutes
+            
+            _Usually we have seen that more than 40% of the emails are usually from the top five senders_
+            So after one cleanup, the next time will be blazing fast!
+            """
+            status_text.markdown(
+                f"""
+                Processing email {current}/{total}
+                {warn_for_large_inboxes if total > 3000 else ""}
+                """
+            )
 
         st.session_state.email_data = analyzer.get_sender_statistics(
-            st.session_state.max_emails, progress_callback=update_progress
+            progress_callback=update_progress
         )
 
         progress_bar.empty()
@@ -27,11 +42,11 @@ def sender_list_for_cleanup_component():
 
     with st.form("cleanup_form", border=False):
         # Create display columns with cleanup checkbox as first column
-        display_df = df[["Sender Name", "Email", "Unsubscribe Link"]].copy()
+        display_df = df[["Sender Name", "Email", "Count", "Unsubscribe Link"]].copy()
         display_df["should_clean_up"] = False
         # Reorder columns to put checkbox first
         display_df = display_df[
-            ["should_clean_up", "Sender Name", "Email", "Unsubscribe Link"]
+            ["should_clean_up", "Sender Name", "Email", "Count", "Unsubscribe Link"]
         ]
 
         # Create the interactive dataframe
@@ -48,6 +63,9 @@ def sender_list_for_cleanup_component():
                     help="Click to unsubscribe",
                     display_text="🔗 Unsubscribe",
                     validate="https?://.*",
+                ),
+                "Count": st.column_config.NumberColumn(
+                    "Mail count", help="Number of emails from this sender"
                 ),
             },
             hide_index=True,
@@ -106,13 +124,6 @@ def sidebar_component():
                 value=st.session_state.app_password,
                 type="password",
             )
-            st.session_state.max_emails = st.number_input(
-                "Maximum emails to analyze",
-                min_value=10,
-                max_value=1000,
-                value=st.session_state.max_emails,
-                step=10,
-            )
 
             if st.form_submit_button("Connect"):
                 if st.session_state.email_address and st.session_state.app_password:
@@ -145,8 +156,6 @@ def main():
         st.session_state.email_address = None
     if "app_password" not in st.session_state:
         st.session_state.app_password = None
-    if "max_emails" not in st.session_state:
-        st.session_state.max_emails = 1000
     if "email_data" not in st.session_state:
         st.session_state.email_data = None
 
