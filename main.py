@@ -25,29 +25,60 @@ def analyze_emails_component(analyzer):
 def sender_list_for_cleanup_component():
     df = st.session_state.email_data
 
-    # Group by sender and create cards
-    for index, row in df.iterrows():
-        with st.container():
-            col1, col2 = st.columns([4, 1], gap="large")
+    with st.form("cleanup_form", border=False):
+        # Create display columns with cleanup checkbox as first column
+        display_df = df[["Sender Name", "Email", "Unsubscribe Link"]].copy()
+        display_df["should_clean_up"] = False
+        # Reorder columns to put checkbox first
+        display_df = display_df[
+            ["should_clean_up", "Sender Name", "Email", "Unsubscribe Link"]
+        ]
 
-            with col1:
-                st.subheader(row["Sender Name"], anchor=False)
-                st.caption(row["Email"])
+        # Create the interactive dataframe
+        edited_df = st.data_editor(
+            display_df,
+            column_config={
+                "should_clean_up": st.column_config.CheckboxColumn(
+                    "Clean up?",
+                    help="Select to clean up emails from this sender",
+                    default=False,
+                ),
+                "Unsubscribe Link": st.column_config.LinkColumn(
+                    "Unsubscribe link",
+                    help="Click to unsubscribe",
+                    display_text="🔗 Unsubscribe",
+                    validate="https?://.*",
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+            height=500,
+        )
 
-            with col2:
-                is_queued = row["Email"] in st.session_state.senders_to_be_cleaned
-                if st.checkbox(
-                    "Queue for deletion",
-                    value=is_queued,
-                    key=f"delete_{index}",
-                ):
-                    st.session_state.senders_to_be_cleaned.add(row["Email"])
-                else:
-                    st.session_state.senders_to_be_cleaned.discard(row["Email"])
-                if row["Unsubscribe Link"]:
-                    st.markdown(f"[Unsubscribe]({row['Unsubscribe Link']})")
-
-            st.divider()
+        if st.form_submit_button("🧹 Clean Selected Emails", use_container_width=True):
+            sender_ids_to_be_cleaned = {
+                row["Email"]
+                for _, row in edited_df.iterrows()
+                if row["should_clean_up"]
+            }
+            if not sender_ids_to_be_cleaned:
+                st.toast("No senders selected for cleanup!")
+            else:
+                st.write(
+                    f"Cleaning up emails from: {', '.join(sender_ids_to_be_cleaned)}"
+                )
+                st.toast(
+                    "This may take a while depending on the number of emails. Please be patient!"
+                )
+                analyzer = GmailAnalyzer(
+                    st.session_state.email_address, st.session_state.app_password
+                )
+                # TODO: move to bulk delete
+                for sender in sender_ids_to_be_cleaned:
+                    deleted_count = analyzer.delete_emails_from_sender(sender)
+                    st.toast(f"Moved {deleted_count} emails from {sender} to the bin!")
+                st.session_state.email_data = None
+                st.rerun()
 
 
 def email_cleanup_component():
@@ -57,10 +88,9 @@ def email_cleanup_component():
     # Show "Analyze Emails" button only if sender_stats is not populated
     if st.session_state.email_data is None:
         analyze_emails_component(analyzer)
+        return
 
-    # Always show the grouped view if email_data is present
-    if st.session_state.email_data is not None:
-        sender_list_for_cleanup_component()
+    sender_list_for_cleanup_component()
 
 
 def sidebar_component():
@@ -115,40 +145,17 @@ def main():
         st.session_state.max_emails = 1000
     if "email_data" not in st.session_state:
         st.session_state.email_data = None
-    if "senders_to_be_cleaned" not in st.session_state:
-        st.session_state.senders_to_be_cleaned = set()
 
     # Sidebar for authentication
     sidebar_component()
 
-    # Title row with clean and refresh buttons
-    title_col, clean_col, reset_col = st.columns([6, 1, 1])
+    # Title row with refresh button
+    title_col, reset_col = st.columns([7, 1])
     with title_col:
         st.title("CleanMail")
-    with clean_col:
-        if st.button("🧹 Clean", use_container_width=True):
-            if not st.session_state.senders_to_be_cleaned:
-                st.toast("No senders selected for cleanup!")
-            else:
-                st.toast(
-                    f"{len(st.session_state.senders_to_be_cleaned)} senders' emails are queued to be cleaned. Starting now!"
-                )
-                st.toast(
-                    "This may take a while depending on the number of emails. Please be patient!"
-                )
-                analyzer = GmailAnalyzer(
-                    st.session_state.email_address, st.session_state.app_password
-                )
-                for sender in st.session_state.senders_to_be_cleaned:
-                    deleted_count = analyzer.delete_emails_from_sender(sender)
-                    st.toast(f"Moved {deleted_count} emails from {sender} to the bin!")
-                st.session_state.senders_to_be_cleaned.clear()
-                st.session_state.email_data = None
-                st.rerun()
     with reset_col:
         if st.button("🔄 Reset", use_container_width=True):
             st.session_state.email_data = None
-            st.session_state.senders_to_be_cleaned.clear()
             st.rerun()
 
     if st.session_state.email_address and st.session_state.app_password:
