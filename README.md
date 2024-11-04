@@ -10,29 +10,29 @@ A tool to quickly clean up your email inbox!
 
 1. install uv (if you don't have it)
 
-  ```bash
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
 
-  Make sure you follow the instructions once the installation completes.
+   Make sure you follow the instructions once the installation completes.
 
 1. install dependencies with uv
 
-  ```bash
-  uv sync
-  ```
+   ```bash
+   uv sync
+   ```
 
 1. activate the virtual environment
 
-  ```bash
-  source .venv/bin/activate
-  ```
+   ```bash
+   source .venv/bin/activate
+   ```
 
 1. run streamlit app:
 
-  ```bash
-  streamlit run main.py`
-  ```
+   ```bash
+   streamlit run main.py`
+   ```
 
 If you are self hosting it yourself, there is a dockerfile as well.
 
