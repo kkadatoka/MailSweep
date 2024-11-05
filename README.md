@@ -8,7 +8,7 @@ A tool to quickly clean up your email inbox!
 
 ## How to run
 
-1. install uv (if you don't have it)
+1. Install uv (if you don't have it)
 
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -16,12 +16,12 @@ A tool to quickly clean up your email inbox!
 
    Make sure you follow the instructions once the installation completes.
 
-1. install dependencies with uv
+1. Install dependencies with uv
 
    ```bash
    uv sync
    ```
-1. run streamlit app:
+1. Run streamlit app:
 
    ```bash
    uv run streamlit run main.py`
