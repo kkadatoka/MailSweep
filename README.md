@@ -21,17 +21,10 @@ A tool to quickly clean up your email inbox!
    ```bash
    uv sync
    ```
-
-1. activate the virtual environment
-
-   ```bash
-   source .venv/bin/activate
-   ```
-
 1. run streamlit app:
 
    ```bash
-   streamlit run main.py`
+   uv run streamlit run main.py`
    ```
 
 If you are self hosting it yourself, there is a dockerfile as well.
