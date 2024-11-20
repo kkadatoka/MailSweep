@@ -24,7 +24,7 @@ A tool to quickly clean up your email inbox!
 1. Run streamlit app:
 
    ```bash
-   uv run streamlit run main.py`
+   uv run streamlit run main.py
    ```
 
 If you are self hosting it yourself, there is a dockerfile as well.
