@@ -24,16 +24,36 @@ class GmailAnalyzer:
             raise Exception("Could not list folders")
 
         for folder in folders:
-            if "[Gmail]/Bin" in folder.decode():
-                return '"[Gmail]/Bin"'
-            if "[Gmail]/Trash" in folder.decode():
-                return '"[Gmail]/Trash"'
+            # Decode the folder
+            decoded_folder = folder.decode()
+
+            # Extract the folder name from the string
+            # The folder name is the part between the last "/" and the end
+            folder_name = decoded_folder.split(' "/" ')[-1].strip('"')
+
+            # Match the folder name exactly
+            if folder_name in ["Trash", "[Gmail]/Bin", "[Gmail]/Trash","[Yahoo]/Bin", "[Yahoo]/Trash" ]:
+                return folder_name
 
         raise Exception("Could not find Bin or Trash folder")
-
+    def imap_url(self) -> str:
+        email = self.email_address.lower()
+        endpoints = {
+            'yahoo.com': 'imap.mail.yahoo.com',
+            'gmail.com': 'imap.gmail.com',
+        }
+        # Extract domain from email address
+        domain = email.split('@')[-1]
+        
+        # Match domain to known IMAP endpoints
+        if domain in endpoints:
+            return endpoints[domain]
+        else:
+            raise ValueError(f"Unsupported email domain: {domain}")
+        
     def connect(self) -> imaplib.IMAP4_SSL:
         """Create a fresh IMAP connection"""
-        mail = imaplib.IMAP4_SSL("imap.gmail.com")
+        mail = imaplib.IMAP4_SSL(self.imap_url())
         mail.login(self.email_address, self.app_password)
         return mail
 
