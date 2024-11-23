@@ -176,7 +176,7 @@ def main():
     if st.session_state.email_address and st.session_state.app_password:
         email_cleanup_component()
     else:
-        st.info("Please authenticate using your Gmail credentials in the sidebar.")
+        st.info("Please authenticate using your credentials in the sidebar.")
         st.markdown(
             """
         ### Instructions:
