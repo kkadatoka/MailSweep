@@ -1,7 +1,7 @@
 import math
 
 import streamlit as st
-from gmail_client import GmailAnalyzer
+from mail_client import MailAnalyzer
 
 
 def analyze_emails_component(analyzer):
@@ -88,7 +88,7 @@ def sender_list_for_cleanup_component():
                 st.toast(
                     "This may take a while depending on the number of emails. Please be patient!"
                 )
-                analyzer = GmailAnalyzer(
+                analyzer = MailAnalyzer(
                     st.session_state.email_address, st.session_state.app_password
                 )
                 # TODO: move to bulk delete
@@ -100,7 +100,7 @@ def sender_list_for_cleanup_component():
 
 
 def email_cleanup_component():
-    analyzer = GmailAnalyzer(
+    analyzer = MailAnalyzer(
         st.session_state.email_address, st.session_state.app_password
     )
     # Show "Analyze Emails" button only if sender_stats is not populated
@@ -117,17 +117,19 @@ def sidebar_component():
     with st.sidebar:
         with st.form("authentication_form"):
             st.session_state.email_address = st.text_input(
-                "Gmail Address", value=st.session_state.email_address, type="default"
+                "Gmail/Yahoo Address",
+                value=st.session_state.email_address,
+                type="default",
             )
             st.session_state.app_password = st.text_input(
-                "Gmail App Password",
+                "Gmail/Yahoo App Password",
                 value=st.session_state.app_password,
                 type="password",
             )
 
             if st.form_submit_button("Connect"):
                 if st.session_state.email_address and st.session_state.app_password:
-                    analyzer = GmailAnalyzer(
+                    analyzer = MailAnalyzer(
                         st.session_state.email_address, st.session_state.app_password
                     )
                     test_conn = analyzer.connect()
@@ -178,13 +180,12 @@ def main():
         st.markdown(
             """
         ### Instructions:
-        1. Enter your Gmail address
-        2. Enter your [Gmail App Password](https://myaccount.google.com/apppasswords)
+        1. Enter your Gmail or Yahoo address
+        2. Enter your [Gmail App Password](https://myaccount.google.com/apppasswords) or [Yahoo App Password](https://help.yahoo.com/kb/SLN15241.html)
         3. Select the number of recent emails to analyze
         4. Click Connect to start analyzing your inbox
         
-        **Note:** This app requires a Gmail App Password, not your regular Gmail password!
-        [Learn how to create an App Password](https://support.google.com/accounts/answer/185833)
+        **Note:** _This app requires a App Password, not your regular password_!
         """
         )
 

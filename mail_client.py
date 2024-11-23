@@ -8,7 +8,7 @@ from typing import Optional, List, Any
 import pandas as pd
 
 
-class GmailAnalyzer:
+class MailAnalyzer:
     def __init__(self, email_address, app_password):
         self.email_address = email_address
         self.app_password = app_password
@@ -32,28 +32,34 @@ class GmailAnalyzer:
             folder_name = decoded_folder.split(' "/" ')[-1].strip('"')
 
             # Match the folder name exactly
-            if folder_name in ["Trash", "[Gmail]/Bin", "[Gmail]/Trash","[Yahoo]/Bin", "[Yahoo]/Trash" ]:
+            if folder_name in [
+                "Trash",
+                "[Gmail]/Bin",
+                "[Gmail]/Trash",
+                "[Yahoo]/Bin",
+                "[Yahoo]/Trash",
+            ]:
                 return folder_name
 
         raise Exception("Could not find Bin or Trash folder")
-    def imap_url(self) -> str:
-        email = self.email_address.lower()
+
+    def __get_imap_url(self) -> str:
         endpoints = {
-            'yahoo.com': 'imap.mail.yahoo.com',
-            'gmail.com': 'imap.gmail.com',
+            "yahoo.com": "imap.mail.yahoo.com",
+            "gmail.com": "imap.gmail.com",
         }
         # Extract domain from email address
-        domain = email.split('@')[-1]
-        
+        domain = self.email_address.lower().split("@")[-1]
+
         # Match domain to known IMAP endpoints
         if domain in endpoints:
             return endpoints[domain]
         else:
             raise ValueError(f"Unsupported email domain: {domain}")
-        
+
     def connect(self) -> imaplib.IMAP4_SSL:
         """Create a fresh IMAP connection"""
-        mail = imaplib.IMAP4_SSL(self.imap_url())
+        mail = imaplib.IMAP4_SSL(self.__get_imap_url())
         mail.login(self.email_address, self.app_password)
         return mail
 
@@ -100,7 +106,7 @@ class GmailAnalyzer:
                                 "Email": sender_addr,
                                 "Count": 0,
                                 "Raw Data": raw_data,
-                                "Unsubscribe Link": GmailAnalyzer.get_unsubscribe_link(
+                                "Unsubscribe Link": MailAnalyzer.get_unsubscribe_link(
                                     raw_data
                                 ),
                             }
